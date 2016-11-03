@@ -1,13 +1,13 @@
 source ~/chxia/env.sh
 
-BACKUP_ROOT=oss://chxia/sw/leanote_backup/
+BACKUP_ROOT=/home/admin/chxia/sw/leanote_backup/
 BACKUP_PREFIX=leanote_mongodb
-MAX_BACKUPS=5
+MAX_BACKUPS=10
 
 backup_checksum_exists()
 {
     checksum=$1
-    osscmd ls $BACKUP_ROOT | grep $checksum >/dev/null 2>&1
+    /bin/ls $BACKUP_ROOT | grep $checksum >/dev/null 2>&1
     return $?
 }
 
@@ -17,7 +17,7 @@ save_backup()
     localfile=$1
     backup_checksum=$2
     upload=${BACKUP_ROOT}${BACKUP_PREFIX}_`date +%s`_${backup_checksum}.tar.gz
-    osscmd put $localfile $upload
+    /bin/cp $localfile $upload
     return $?
 }
 
@@ -37,17 +37,17 @@ supply_backup_buffer()
     max=$MAX_BACKUPS
     pattern=$BACKUP_PREFIX
     root=$BACKUP_ROOT
-    current=`osscmd ls $root | grep $pattern | wc -l`
+    current=`/bin/ls $root | grep $pattern | wc -l`
     echo "current $current, buffer max $max"
     if [ $current -le $max ]; then
         return
     fi
     to_remove=`expr $current - $max`
     echo "to remove file " $to_remove $current $max
-    osscmd ls $root | grep $pattern | awk '{print $NF}' | sort -u | head -n $to_remove | while read file
+    /bin/ls $root | grep $pattern | awk '{print $NF}' | sort -u | head -n $to_remove | while read file
     do
         echo "will remove $file"
-        osscmd rm $file
+        /bin/rm $file
     done
 
 }
@@ -61,7 +61,7 @@ backup()
 {
     dump="leanotedump"
     /bin/rm -rf $dump
-    mongodump -d leanote -o $dump 
+    mongodump -d leanote -o $dump
     if [ $? != 0 ]; then
         echo "mongodump error!!!" 
         send_mail 1 "MongoDump ERROR!"
