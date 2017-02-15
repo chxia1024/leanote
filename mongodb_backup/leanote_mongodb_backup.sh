@@ -47,7 +47,7 @@ supply_backup_buffer()
     /bin/ls $root | grep $pattern | awk '{print $NF}' | sort -u | head -n $to_remove | while read file
     do
         echo "will remove $file"
-        /bin/rm $file
+        /bin/rm $root/$file
     done
 
 }
@@ -75,7 +75,7 @@ backup()
         rm $localfile -f; tar -zcf $localfile $dump
         size=`du -sh $localfile | awk '{print $1}'`
         if save_backup $localfile $checksum; then
-            send_mail 0 "Checksum file in oss: $checksum , size $size"
+            send_mail 0 "Checksum file in local dir: $checksum , size $size"
         else
             send_mail 1 "Failed to save backup in oss."
         fi
