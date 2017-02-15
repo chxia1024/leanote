@@ -415,8 +415,7 @@ func (c Note) ExportPdf(noteId string) revel.Result {
 
 	// path 判断是否需要重新生成之
 	guid := NewGuid()
-	fileUrlPath := "files/export_pdf"
-	dir := revel.BasePath + "/" + fileUrlPath
+	dir := "/tmp/leanote_export_pdf"
 	if !MkdirAll(dir) {
 		return c.RenderText("error, no dir")
 	}
@@ -433,8 +432,11 @@ func (c Note) ExportPdf(noteId string) revel.Result {
 	binPath := configService.GetGlobalStringConfig("exportPdfBinPath")
 	// 默认路径
 	if binPath == "" {
-		binPath = "/usr/local/bin/wkhtmltopdf"
+		binPath = "/usr/local/bin/phantomjs"
 	}
+
+	// rasterize
+	rasterize := revel.BasePath + "/public/libs/html2pdf/rasterize.js"
 
 	url := configService.GetSiteUrl() + "/note/toPdf?noteId=" + noteId + "&appKey=" + appKey
 	//	cc := binPath + " --no-stop-slow-scripts --javascript-delay 10000 \"" + url + "\"  \"" + path + "\"" //  \"" + cookieDomain + "\" \"" + cookieName + "\" \"" + cookieValue + "\""
@@ -442,12 +444,7 @@ func (c Note) ExportPdf(noteId string) revel.Result {
 	// 等待--window-status为done的状态
 	// http://madalgo.au.dk/~jakobt/wkhtmltoxdoc/wkhtmltopdf_0.10.0_rc2-doc.html
 	// wkhtmltopdf参数大全
-	var cc string
-	if note.IsMarkdown {
-		cc = binPath + " --lowquality --window-status done \"" + url + "\"  \"" + path + "\"" //  \"" + cookieDomain + "\" \"" + cookieName + "\" \"" + cookieValue + "\""
-	} else {
-		cc = binPath + " --lowquality \"" + url + "\"  \"" + path + "\"" //  \"" + cookieDomain + "\" \"" + cookieName + "\" \"" + cookieValue + "\""
-	}
+	cc := binPath + " \"" + rasterize + "\" \"" + url + "\" \"" + path + "\" \"" + "A4" + "\""
 
 	cmd := exec.Command("/bin/sh", "-c", cc)
 	_, err := cmd.Output()

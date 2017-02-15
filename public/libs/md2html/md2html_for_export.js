@@ -504,15 +504,26 @@ listStr=addAnchors(listStr);listStr=listStr.replace(/\n{2,}(?=\\x03)/,"\n");list
 		//===========
 		// uml
 		var umlDiagrams = {};
-	    umlDiagrams.config = {
-	        flowchartOptions: [
-	            '{',
-	            '   "line-width": 2,',
-	            '   "font-family": "sans-serif",',
-	            '   "font-weight": "normal"',
-	            '}'
-	        ].join('\n')
-	    };
+		umlDiagrams.config = {
+			mermaidConfig: {
+				startOnLoad:false,
+				cloneCssStyles:false,
+				callback:function(id){
+					console.log(id,' rendered');
+				},
+				flowchart:{
+					htmlLabels:true,
+					useMaxWidth:true
+				}
+			},
+			flowchartOptions: [
+				'{',
+				'   "line-width": 2,',
+				'   "font-family": "sans-serif",',
+				'   "font-weight": "normal"',
+				'}'
+			].join('\n')
+		};
 
 	    var _loadUmlJs = false;
 
@@ -522,6 +533,7 @@ listStr=addAnchors(listStr);listStr=listStr.replace(/\n{2,}(?=\\x03)/,"\n");list
 
 	        var sequenceElems = previewContentsElt.querySelectorAll('.prettyprint > .language-sequence');
 	        var flowElems = previewContentsElt.querySelectorAll('.prettyprint > .language-flow');
+	        var mermaidElems = previewContentsElt.querySelectorAll('.prettyprint > .language-mermaid');
 
 	        function convert() { 
 	        	_each(sequenceElems, function(elt) {
@@ -555,22 +567,41 @@ listStr=addAnchors(listStr);listStr=listStr.replace(/\n{2,}(?=\\x03)/,"\n");list
 	                    console.error(e);
 	                }
 	            });
+				_each(mermaidElems, function(elt) {
+					try {
+						var preElt = elt.parentNode;
+						var containerElt = crel('div', {
+							class: 'mermaid',
+							id: 'i' + Math.random().toString(36).substr(2, 9)
+						});
+						var insertSvg = function(svgCode, bindFunctions){
+							containerElt.innerHTML = svgCode;
+							bindFunctions && bindFunctions(containerElt);
+						};
+						mermaidAPI.initialize(umlDiagrams.config.mermaidConfig);
+						var graph = mermaidAPI.render(containerElt.id, elt.textContent, insertSvg);
+	                    preElt.parentNode.replaceChild(containerElt, preElt);
+					}
+					catch(e) {
+						console.error(e);
+					}
+				});
 
-	            callback && callback();
+				callback && callback();
 	        }
 
-	        if(sequenceElems.length > 0 || flowElems.length > 0) {
-	        	if(!_loadUmlJs) {
-		        	loadJs('/public/libs/md2html/uml.js', function() {
-		        		_loadUmlJs = true;
-		                convert();
-		            }); 
-	        	} else {
-	        		convert();
-	        	}
-	        } else {
-	        	callback && callback();
-	        }
+	        if(sequenceElems.length > 0 || flowElems.length > 0 || mermaidElems.length > 0) {
+				if(!_loadUmlJs) {
+					loadJs('/public/libs/uml/mermaid.min.js', function() {
+						_loadUmlJs = true;
+						convert();
+					});
+				} else {
+					convert();
+				}
+			} else {
+				callback && callback();
+			}
 	    };
 
 	    return umlDiagrams;
